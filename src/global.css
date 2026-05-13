@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+SC:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  color: #182126;
+  background:
+    radial-gradient(circle at top left, rgba(31, 122, 140, 0.14), transparent 32%),
+    radial-gradient(circle at top right, rgba(197, 106, 45, 0.16), transparent 28%),
+    linear-gradient(135deg, #efe4d2 0%, #f8f4ec 40%, #dddccf 100%);
+  font-family: "IBM Plex Sans SC", "Avenir Next", "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  --panel: rgba(255, 252, 247, 0.72);
+  --panel-strong: rgba(255, 250, 243, 0.92);
+  --panel-border: rgba(24, 33, 38, 0.08);
+  --ink-soft: rgba(24, 33, 38, 0.68);
+  --copilot-kit-primary-color: #1f7a8c;
+  --copilot-kit-contrast-color: #ffffff;
+  --copilot-kit-background-color: transparent;
+  --copilot-kit-secondary-color: #d9e5df;
+  --copilot-kit-secondary-contrast-color: #182126;
+  --copilot-kit-separator-color: rgba(24, 33, 38, 0.08);
+  --copilot-kit-input-background-color: rgba(255, 255, 255, 0.75);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(31, 122, 140, 0.16), transparent 22%),
+    radial-gradient(circle at 80% 0%, rgba(197, 106, 45, 0.15), transparent 18%),
+    linear-gradient(135deg, #efe4d2 0%, #f8f4ec 45%, #dddccf 100%);
+  color: #182126;
+}
+
+a {
+  color: inherit;
+}
+
+.glass-panel {
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 60px rgba(51, 55, 58, 0.12);
+}
+
+.glass-panel-strong {
+  background: var(--panel-strong);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 60px rgba(51, 55, 58, 0.12);
+}
+
+.heading-font {
+  font-family: "Space Grotesk", "IBM Plex Sans SC", sans-serif;
+}
+
+.copilotKitChat {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.copilotKitMessages {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-inline: 0;
+}
+
+.markdown-body p:first-child {
+  margin-top: 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
