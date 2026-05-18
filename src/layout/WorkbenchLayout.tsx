@@ -11,6 +11,7 @@ import { serializeMessages } from '@/lib/session';
 import AppShell from '@/layout/AppShell';
 import { appApi } from '@/services/api';
 import {
+  accessTokenAtom,
   catalogAtom,
   currentSessionAtom,
   currentSessionIdAtom,
@@ -53,13 +54,14 @@ export default function WorkbenchLayout({ children }: WorkbenchLayoutProps) {
   const [currentSessionId, setCurrentSessionId] = useAtom(currentSessionIdAtom);
   const [selectedAgentId, setSelectedAgentId] = useAtom(selectedAgentIdAtom);
   const currentSession = useAtomValue(currentSessionAtom);
+  const accessToken = useAtomValue(accessTokenAtom);
   const currentUserEmail = useAtomValue(currentUserEmailAtom);
   const currentAgent = useAtomValue(currentAgentAtom);
   const [runtimeEvents, setRuntimeEvents] = useState<RuntimeEventItem[]>([]);
   const currentMessages = useMemo(() => serializeMessages((agent?.messages || []) as any[]), [agent?.messages]);
 
   const loadSessions = async () => {
-    const nextSessions = await appApi.listSessions();
+    const nextSessions = await appApi.listSessions(accessToken || undefined);
     setSessions(nextSessions);
     if (currentSessionId && !nextSessions.some(session => session.id === currentSessionId)) {
       setCurrentSessionId('');
@@ -73,20 +75,20 @@ export default function WorkbenchLayout({ children }: WorkbenchLayoutProps) {
     }
 
     appApi
-      .getConfig()
+      .getConfig(accessToken || undefined)
       .then(config => {
         setCatalog(config.agents);
       })
       .catch(error => {
         message.error(error instanceof Error ? error.message : '配置加载失败');
       });
-  }, [catalog.length, message, setCatalog]);
+  }, [accessToken, catalog.length, message, setCatalog]);
 
   useEffect(() => {
     loadSessions().catch(error => {
       message.error(error instanceof Error ? error.message : '会话列表加载失败');
     });
-  }, [message]);
+  }, [accessToken, message]);
 
   useEffect(() => {
     if (!currentSession) {
@@ -130,7 +132,7 @@ export default function WorkbenchLayout({ children }: WorkbenchLayoutProps) {
       agentId: agentInfo.id,
       agentKind: agentInfo.kind,
       title: `${agentInfo.name} 会话`,
-    });
+    }, accessToken || undefined);
     await loadSessions();
     return threadId;
   };
@@ -177,7 +179,7 @@ export default function WorkbenchLayout({ children }: WorkbenchLayoutProps) {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    await appApi.deleteSession(sessionId);
+    await appApi.deleteSession(sessionId, accessToken || undefined);
     if (currentSessionId === sessionId) {
       agent?.setMessages?.([]);
       setRuntimeEvents([]);
@@ -187,7 +189,7 @@ export default function WorkbenchLayout({ children }: WorkbenchLayoutProps) {
   };
 
   const handleRenameSession = async (sessionId: string, title: string) => {
-    await appApi.renameSession(sessionId, title);
+    await appApi.renameSession(sessionId, title, accessToken || undefined);
     await loadSessions();
   };
 

@@ -13,30 +13,31 @@ function withBackend(path: string) {
 }
 
 export const appApi = {
-  async getConfig() {
-    return requestJson<{ appName: string; agents: CatalogAgent[] }>(withAdapter('/api/config'));
+  async getConfig(token?: string) {
+    return requestJson<{ appName: string; agents: CatalogAgent[] }>(withAdapter('/api/config'), undefined, token);
   },
-  async listSessions() {
-    return requestJson<StoredSession[]>(withAdapter('/api/sessions'));
+  async listSessions(token?: string) {
+    return requestJson<StoredSession[]>(withAdapter('/api/sessions'), undefined, token);
   },
-  async prepareSession(payload: { threadId: string; agentId: string; agentKind: string; title?: string }) {
+  async prepareSession(payload: { threadId: string; agentId: string; agentKind: string; title?: string }, token?: string) {
     return requestJson<StoredSession>(withAdapter('/api/sessions/prepare'), {
       method: 'POST',
       body: JSON.stringify(payload),
-    });
+    }, token);
   },
-  async renameSession(threadId: string, title: string) {
+  async renameSession(threadId: string, title: string, token?: string) {
     return requestJson<StoredSession>(withAdapter(`/api/sessions/${threadId}`), {
       method: 'PATCH',
       body: JSON.stringify({ title }),
-    });
+    }, token);
   },
-  async deleteSession(threadId: string) {
+  async deleteSession(threadId: string, token?: string) {
     return requestJson<void>(
       withAdapter(`/api/sessions/${threadId}`),
       {
         method: 'DELETE',
-      }
+      },
+      token
     );
   },
 };

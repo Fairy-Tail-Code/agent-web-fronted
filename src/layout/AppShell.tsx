@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MenuOutlined } from '@ant-design/icons';
+import { MenuFoldOutlined, CloseOutlined } from '@ant-design/icons';
 import { Button, Drawer } from 'antd';
 import { useResponsive } from 'ahooks';
 import type { ReactNode } from 'react';
@@ -16,21 +16,28 @@ export default function AppShell({ sidebar, main, aside }: AppShellProps) {
 
   if (!responsive.lg) {
     return (
-      <div className="min-h-screen px-4 py-4">
+      <div className="min-h-screen px-4 py-4 md:px-5 md:py-5">
         <div className="mb-4 flex justify-end">
-          <Button icon={<MenuOutlined />} onClick={() => setMobileSidebarOpen(true)}>
-            面板
+          <Button
+            icon={<MenuFoldOutlined />}
+            onClick={() => setMobileSidebarOpen(true)}
+            className="!rounded-xl !h-10 !px-4 font-medium shadow-sm"
+          >
+            菜单
           </Button>
         </div>
-        <div className="min-h-[calc(100vh-88px)]">
-          {main}
-        </div>
+        <div className="min-h-[calc(100vh-80px)]">{main}</div>
         <Drawer
           placement="left"
-          width={360}
+          width={380}
           open={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
-          bodyStyle={{ padding: 12 }}
+          closeIcon={<CloseOutlined className="text-[var(--ink-secondary)]" />}
+          styles={{
+            body: { padding: '16px', background: 'transparent' },
+            header: { borderBottom: '1px solid var(--panel-border)', padding: '16px 20px' },
+          }}
+          className="!bg-transparent"
         >
           {sidebar}
         </Drawer>
@@ -39,10 +46,10 @@ export default function AppShell({ sidebar, main, aside }: AppShellProps) {
   }
 
   return (
-    <div className="h-screen overflow-hidden px-5 py-5">
+    <div className="h-screen overflow-hidden px-6 py-6">
       <div
-        className={`grid h-full gap-5 ${
-          aside ? 'grid-cols-[280px_minmax(0,1fr)_320px]' : 'grid-cols-[280px_minmax(0,1fr)]'
+        className={`grid h-full gap-6 ${
+          aside ? 'grid-cols-[300px_minmax(0,1fr)_340px]' : 'grid-cols-[300px_minmax(0,1fr)]'
         }`}
       >
         <div className="min-h-0">{sidebar}</div>

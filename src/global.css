@@ -1,26 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+SC:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+SC:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  color: #182126;
+  color: #1a1f1a;
   background:
-    radial-gradient(circle at top left, rgba(31, 122, 140, 0.14), transparent 32%),
-    radial-gradient(circle at top right, rgba(197, 106, 45, 0.16), transparent 28%),
-    linear-gradient(135deg, #efe4d2 0%, #f8f4ec 40%, #dddccf 100%);
-  font-family: "IBM Plex Sans SC", "Avenir Next", "Segoe UI", sans-serif;
-  line-height: 1.5;
+    radial-gradient(ellipse at 0% 0%, rgba(45, 90, 79, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(196, 120, 58, 0.14) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 100%, rgba(45, 90, 79, 0.08) 0%, transparent 40%),
+    linear-gradient(145deg, #fdf9f2 0%, #f7f3eb 30%, #f0ece4 70%, #e8e4dc 100%);
+  font-family: "Inter", "IBM Plex Sans SC", "Segoe UI", -apple-system, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
-  --panel: rgba(255, 252, 247, 0.72);
-  --panel-strong: rgba(255, 250, 243, 0.92);
-  --panel-border: rgba(24, 33, 38, 0.08);
-  --ink-soft: rgba(24, 33, 38, 0.68);
-  --copilot-kit-primary-color: #1f7a8c;
+  letter-spacing: -0.01em;
+
+  --panel: rgba(255, 252, 245, 0.78);
+  --panel-strong: rgba(255, 250, 243, 0.94);
+  --panel-border: rgba(26, 31, 26, 0.07);
+  --ink-primary: #1a1f1a;
+  --ink-secondary: rgba(26, 31, 26, 0.72);
+  --ink-tertiary: rgba(26, 31, 26, 0.54);
+  --accent-primary: #2d5a4f;
+  --accent-secondary: #4a7c59;
+  --accent-warm: #c4783a;
+  --accent-error: #c7554d;
+
+  --copilot-kit-primary-color: #2d5a4f;
   --copilot-kit-contrast-color: #ffffff;
   --copilot-kit-background-color: transparent;
-  --copilot-kit-secondary-color: #d9e5df;
-  --copilot-kit-secondary-contrast-color: #182126;
-  --copilot-kit-separator-color: rgba(24, 33, 38, 0.08);
-  --copilot-kit-input-background-color: rgba(255, 255, 255, 0.75);
+  --copilot-kit-secondary-color: #dce8e3;
+  --copilot-kit-secondary-contrast-color: #1a1f1a;
+  --copilot-kit-separator-color: rgba(26, 31, 26, 0.08);
+  --copilot-kit-input-background-color: rgba(255, 255, 255, 0.82);
 }
 
 * {
@@ -32,36 +42,79 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background:
-    radial-gradient(circle at 20% 10%, rgba(31, 122, 140, 0.16), transparent 22%),
-    radial-gradient(circle at 80% 0%, rgba(197, 106, 45, 0.15), transparent 18%),
-    linear-gradient(135deg, #efe4d2 0%, #f8f4ec 45%, #dddccf 100%);
-  color: #182126;
+    radial-gradient(ellipse at 15% 8%, rgba(45, 90, 79, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 5%, rgba(196, 120, 58, 0.12) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 95%, rgba(45, 90, 79, 0.08) 0%, transparent 35%),
+    linear-gradient(145deg, #fdf9f2 0%, #f7f3eb 35%, #f0ece4 65%, #e8e4dc 100%);
+  color: #1a1f1a;
+  background-attachment: fixed;
 }
 
 a {
   color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 .glass-panel {
   background: var(--panel);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--panel-border);
-  box-shadow: 0 24px 60px rgba(51, 55, 58, 0.12);
+  box-shadow:
+    0 8px 32px rgba(26, 31, 26, 0.06),
+    0 2px 8px rgba(26, 31, 26, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-panel:hover {
+  border-color: rgba(26, 31, 26, 0.12);
+  box-shadow:
+    0 12px 40px rgba(26, 31, 26, 0.08),
+    0 4px 12px rgba(26, 31, 26, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .glass-panel-strong {
   background: var(--panel-strong);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--panel-border);
-  box-shadow: 0 24px 60px rgba(51, 55, 58, 0.12);
+  box-shadow:
+    0 8px 32px rgba(26, 31, 26, 0.08),
+    0 2px 12px rgba(26, 31, 26, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.display-font {
+  font-family: "Playfair Display", "Inter", "IBM Plex Sans SC", serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .heading-font {
-  font-family: "Space Grotesk", "IBM Plex Sans SC", sans-serif;
+  font-family: "Playfair Display", "Inter", "IBM Plex Sans SC", serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .copilotKitChat {
@@ -76,6 +129,34 @@ a {
   flex: 1 1 auto;
   overflow-y: auto;
   padding-inline: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 31, 26, 0.2) transparent;
+}
+
+.copilotKitMessages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.copilotKitMessages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.copilotKitMessages::-webkit-scrollbar-thumb {
+  background: rgba(26, 31, 26, 0.2);
+  border-radius: 3px;
+}
+
+.copilotKitMessages::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 31, 26, 0.3);
+}
+
+.markdown-body {
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.markdown-body p {
+  margin: 0.6em 0;
 }
 
 .markdown-body p:first-child {
@@ -84,4 +165,147 @@ a {
 
 .markdown-body p:last-child {
   margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  font-family: "Playfair Display", "Inter", "IBM Plex Sans SC", serif;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+}
+
+.markdown-body h1 {
+  font-size: 1.8em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+}
+
+.markdown-body h3 {
+  font-size: 1.3em;
+}
+
+.markdown-body code {
+  background: rgba(45, 90, 79, 0.1);
+  color: #2d5a4f;
+  padding: 0.2em 0.5em;
+  border-radius: 5px;
+  font-size: 0.9em;
+  font-family: "SF Mono", "JetBrains Mono", "Consolas", monospace;
+}
+
+.markdown-body pre {
+  background: rgba(26, 31, 26, 0.95);
+  color: #f5f5f5;
+  padding: 1.2em;
+  border-radius: 14px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-body pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid #2d5a4f;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--ink-secondary);
+  font-style: italic;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin: 0.6em 0;
+}
+
+.markdown-body li {
+  margin: 0.4em 0;
+}
+
+.markdown-body a {
+  color: #2d5a4f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  transition: color 0.2s ease;
+}
+
+.markdown-body a:hover {
+  color: #3d7a6f;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--panel-border);
+  padding: 0.75em 1em;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: rgba(45, 90, 79, 0.08);
+  font-weight: 600;
+  font-family: "Playfair Display", "Inter", "IBM Plex Sans SC", serif;
+}
+
+.markdown-body tr:nth-child(even) {
+  background: rgba(26, 31, 26, 0.02);
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse-soft {
+  animation: pulseSoft 2s ease-in-out infinite;
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
