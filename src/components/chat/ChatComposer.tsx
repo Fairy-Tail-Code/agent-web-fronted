@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CopilotChatAttachmentQueue, type CopilotChatInputProps } from '@copilotkit/react-core/v2';
 import { Alert, Button, Input, Space } from 'antd';
-import { PaperClipOutlined, SendOutlined, StopOutlined, ThunderboltOutlined, RobotOutlined } from '@ant-design/icons';
+import { PaperClipOutlined, SendOutlined, StopOutlined, RobotOutlined } from '@ant-design/icons';
 import { useAtomValue } from 'jotai';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWorkbenchContext } from '@/layout/WorkbenchLayout';
@@ -47,8 +47,10 @@ export default function ChatComposer(props: CopilotChatInputProps) {
 
   return (
     <div
-      className={`glass-panel-strong rounded-[32px] p-5 transition-all duration-300 ${
-        dragOver ? 'ring-2 ring-[#2d5a4f]/40 shadow-xl shadow-[#2d5a4f]/15 scale-[1.01]' : 'shadow-lg'
+      className={`composer-glow rounded-[32px] p-5 transition-all duration-300 ${
+        dragOver
+          ? 'ring-2 ring-[var(--accent-primary)]/40 shadow-xl shadow-[var(--accent-primary)]/15 scale-[1.01] bg-white/90 border-2 border-dashed border-[var(--accent-primary)]/40'
+          : 'glass-panel-strong shadow-lg'
       }`}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -58,7 +60,7 @@ export default function ChatComposer(props: CopilotChatInputProps) {
         <Alert
           type="warning"
           showIcon
-          className="mb-4 !rounded-xl !border-[#c4783a]/30 !bg-[#c4783a]/8"
+          className="mb-4 !rounded-xl !border-[var(--accent-warm)]/30 !bg-[var(--accent-warm)]/8"
           message={isSupabaseConfigured ? '当前未登录。发送消息会先跳转到登录页。' : '当前缺少 Supabase 配置，登录流程不可用。'}
         />
       ) : null}
@@ -79,7 +81,7 @@ export default function ChatComposer(props: CopilotChatInputProps) {
             }
           }}
           placeholder={currentAgent?.promptHint || '输入任务目标、数据背景或你希望生成的内容...'}
-          className="!bg-white/70 !text-[#1a1f1a] !text-[15px] !rounded-[24px] !border-[var(--panel-border)] focus:!border-[#2d5a4f] !pr-14"
+          className="!bg-white/70 !text-[#1a1f1a] !text-[15px] !rounded-[24px] !border-[var(--panel-border)] focus:!border-[var(--accent-primary)] !pr-14"
           style={{
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
           }}
@@ -87,13 +89,13 @@ export default function ChatComposer(props: CopilotChatInputProps) {
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#2d5a4f]/8 text-[13px] text-[#2d5a4f]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-primary)]/8 text-[12px] text-[var(--accent-primary)]">
             <RobotOutlined className="text-sm" />
             <span className="font-medium">{currentAgent?.name || 'Default Agent'}</span>
           </div>
           {isUploading ? (
-            <div className="flex items-center gap-2 text-[13px] text-[#c4783a]">
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 text-[12px] text-[var(--accent-warm)]">
+              <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -101,12 +103,12 @@ export default function ChatComposer(props: CopilotChatInputProps) {
             </div>
           ) : null}
         </div>
-        <Space size={12}>
+        <Space size={10}>
           {onAddFile ? (
             <Button
               icon={<PaperClipOutlined />}
               onClick={onAddFile}
-              className="!rounded-xl !h-10 !px-4 hover:!bg-[#2d5a4f]/8 hover:!text-[#2d5a4f] transition-colors"
+              className="!rounded-xl !h-9 !px-3.5 hover:!bg-[var(--accent-primary)]/8 hover:!text-[var(--accent-primary)] transition-colors"
             >
               添加文件
             </Button>
@@ -115,7 +117,7 @@ export default function ChatComposer(props: CopilotChatInputProps) {
             <Button
               icon={<StopOutlined />}
               onClick={onStop}
-              className="!rounded-xl !h-10 !px-5 !bg-[#c7554d] hover:!bg-[#d96b63] !border-transparent shadow-md shadow-[#c7554d]/20"
+              className="btn-ripple !rounded-xl !h-9 !px-5 !bg-[var(--accent-error)] hover:!bg-[#d96b63] !border-transparent shadow-md shadow-[var(--accent-error)]/20"
             >
               停止
             </Button>
@@ -125,7 +127,7 @@ export default function ChatComposer(props: CopilotChatInputProps) {
               icon={<SendOutlined />}
               onClick={handleSend}
               disabled={isUploading || (!value.trim() && !hasAttachments)}
-              className="!rounded-xl !h-10 !px-6 !font-medium !bg-gradient-to-r !from-[#2d5a4f] !to-[#3d7a6f] hover:!from-[#3d7a6f] hover:!to-[#4a7c59] !border-none shadow-lg shadow-[#2d5a4f]/25 hover:shadow-xl hover:shadow-[#2d5a4f]/30 transition-all"
+              className="btn-ripple !rounded-xl !h-9 !px-5 !font-medium !bg-gradient-to-r !from-[var(--accent-primary)] !to-[#3d7a6f] hover:!from-[#3d7a6f] hover:!to-[var(--accent-secondary)] !border-none shadow-lg shadow-[var(--accent-primary)]/25 hover:shadow-xl hover:shadow-[var(--accent-primary)]/30 transition-all"
             >
               发送
             </Button>

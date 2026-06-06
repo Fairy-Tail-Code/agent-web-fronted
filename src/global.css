@@ -13,17 +13,25 @@
   font-weight: 400;
   letter-spacing: -0.01em;
 
+  /* --- Panel & Ink --- */
   --panel: rgba(255, 252, 245, 0.78);
   --panel-strong: rgba(255, 250, 243, 0.94);
   --panel-border: rgba(26, 31, 26, 0.07);
   --ink-primary: #1a1f1a;
   --ink-secondary: rgba(26, 31, 26, 0.72);
   --ink-tertiary: rgba(26, 31, 26, 0.54);
+
+  /* --- Expanded Accent Palette --- */
   --accent-primary: #2d5a4f;
   --accent-secondary: #4a7c59;
   --accent-warm: #c4783a;
   --accent-error: #c7554d;
+  --accent-blue: #5b7fb5;
+  --accent-purple: #9b6b8e;
+  --accent-mint: #5ba88e;
+  --accent-rose: #b56b7f;
 
+  /* --- CopilotKit tokens --- */
   --copilot-kit-primary-color: #2d5a4f;
   --copilot-kit-contrast-color: #ffffff;
   --copilot-kit-background-color: transparent;
@@ -74,6 +82,10 @@ select {
   font-family: inherit;
 }
 
+/* =========================================================
+   Glass Panels
+   ========================================================= */
+
 .glass-panel {
   background: var(--panel);
   backdrop-filter: blur(24px) saturate(180%);
@@ -105,6 +117,10 @@ select {
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+/* =========================================================
+   Typography
+   ========================================================= */
+
 .display-font {
   font-family: "Playfair Display", "Inter", "IBM Plex Sans SC", serif;
   font-weight: 600;
@@ -116,6 +132,10 @@ select {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+
+/* =========================================================
+   CopilotKit overrides
+   ========================================================= */
 
 .copilotKitChat {
   height: 100%;
@@ -149,6 +169,10 @@ select {
 .copilotKitMessages::-webkit-scrollbar-thumb:hover {
   background: rgba(26, 31, 26, 0.3);
 }
+
+/* =========================================================
+   Markdown Body
+   ========================================================= */
 
 .markdown-body {
   font-size: 15px;
@@ -267,6 +291,10 @@ select {
   background: rgba(26, 31, 26, 0.02);
 }
 
+/* =========================================================
+   Animations
+   ========================================================= */
+
 .fade-in {
   animation: fadeIn 0.4s ease-out;
 }
@@ -307,5 +335,139 @@ select {
   }
   50% {
     opacity: 0.7;
+  }
+}
+
+/* --- Stagger card entrance --- */
+.stagger-child {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: staggerIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes staggerIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Page transition --- */
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --- Ripple on buttons --- */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.35) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.btn-ripple:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+/* --- Composer focus glow --- */
+.composer-glow {
+  transition: box-shadow 0.4s ease;
+}
+
+.composer-glow:focus-within {
+  box-shadow:
+    0 0 0 3px rgba(45, 90, 79, 0.12),
+    0 8px 32px rgba(45, 90, 79, 0.1),
+    0 2px 12px rgba(26, 31, 26, 0.05);
+}
+
+/* --- Streaming cursor blink --- */
+.streaming-cursor::after {
+  content: '▍';
+  display: inline;
+  animation: cursorBlink 1s steps(2) infinite;
+  color: var(--accent-primary);
+  font-weight: 400;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* --- Skeleton shimmer --- */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(26, 31, 26, 0.04) 25%,
+    rgba(26, 31, 26, 0.08) 50%,
+    rgba(26, 31, 26, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 14px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --- Scroll shadow (top edge) --- */
+.scroll-shadow-top {
+  position: relative;
+}
+
+.scroll-shadow-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(26, 31, 26, 0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scroll-shadow-top.scrolled::before {
+  opacity: 1;
+}
+
+/* --- Flash highlight for new items --- */
+.flash-highlight {
+  animation: flashIn 0.8s ease-out;
+}
+
+@keyframes flashIn {
+  0% {
+    background-color: rgba(45, 90, 79, 0.12);
+    box-shadow: 0 0 0 2px rgba(45, 90, 79, 0.15);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
   }
 }

@@ -1,23 +1,21 @@
-FROM node:20-bookworm-slim AS deps
+# 第一阶段：安装依赖
+FROM node:20-alpine AS deps
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 make g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Alpine 用 apk 安装，不是 apt-get！
+RUN apk add --no-cache python3 make g
 
 WORKDIR /app
-
 COPY package.json package-lock.json ./
-
 RUN npm install --omit=dev --force
 
-FROM node:20-bookworm-slim
+# 第二阶段：运行
+FROM registry.aliyuncs.com/node:20-alpine
 
 WORKDIR /app
-
 ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY server ./server
 
 EXPOSE 4000

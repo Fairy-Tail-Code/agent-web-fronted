@@ -81,3 +81,17 @@ export type KnowledgeSearchResult = {
   score: number;
   source_file?: string | null;
 };
+
+export type GeneratedFile = {
+  name: string;
+  path: string;
+  size: number;
+  modified: string;
+  is_dir: boolean;
+  extension: string;
+};
+
+export type FileListResponse = {
+  files: GeneratedFile[];
+  total: number;
+};

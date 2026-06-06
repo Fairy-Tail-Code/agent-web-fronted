@@ -1,4 +1,4 @@
-import type { CatalogAgent, KnowledgeBase, KnowledgeFile, KnowledgeSearchResult, StoredSession } from '@/types';
+import type { CatalogAgent, FileListResponse, GeneratedFile, KnowledgeBase, KnowledgeFile, KnowledgeSearchResult, StoredSession } from '@/types';
 import { requestForm, requestJson } from './http';
 
 const adapterBaseUrl = import.meta.env.VITE_ADAPTER_BASE_URL || '';
@@ -95,5 +95,15 @@ export const knowledgeApi = {
       },
       token
     );
+  },
+};
+
+export const fileApi = {
+  async listFiles(subdir: string | undefined, token: string) {
+    const query = subdir ? `?subdir=${encodeURIComponent(subdir)}` : '';
+    return requestJson<FileListResponse>(withBackend(`/files/list${query}`), undefined, token);
+  },
+  getDownloadUrl(filePath: string) {
+    return withBackend(`/files/download/${filePath}`);
   },
 };

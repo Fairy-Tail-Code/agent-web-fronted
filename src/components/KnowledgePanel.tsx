@@ -4,6 +4,7 @@ import {
   Alert,
   Button,
   Card,
+  Drawer,
   Empty,
   Input,
   List,
@@ -12,7 +13,6 @@ import {
   Tag,
   Typography,
   Upload,
-  type UploadRequestOption,
   message,
   Tooltip,
 } from 'antd';
@@ -25,10 +25,22 @@ import {
   FileTextOutlined,
   TrophyOutlined,
   CloudUploadOutlined,
+  FolderOutlined,
+  CheckCircleOutlined,
+  LoadingOutlined,
+  FileUnknownOutlined,
 } from '@ant-design/icons';
 import { useAtom, useAtomValue } from 'jotai';
 import { knowledgeApi } from '@/services/api';
 import { accessTokenAtom, selectedKnowledgeBaseIdAtom } from '@/store/atoms';
+
+/* ---- Status icon helper ---- */
+function StatusIcon({ status }: { status: string }) {
+  const s = status?.toLowerCase() ?? '';
+  if (s === 'completed' || s === 'done' || s === 'ready') return <CheckCircleOutlined className="text-[var(--accent-secondary)]" />;
+  if (s === 'processing' || s === 'indexing') return <LoadingOutlined className="text-[var(--accent-warm)]" />;
+  return <FileUnknownOutlined className="text-[var(--ink-tertiary)]" />;
+}
 
 export default function KnowledgePanel() {
   const token = useAtomValue(accessTokenAtom);
@@ -36,6 +48,7 @@ export default function KnowledgePanel() {
   const [createName, setCreateName] = useState('');
   const [createDescription, setCreateDescription] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [apiMessage, contextHolder] = message.useMessage();
 
   const basesRequest = useRequest(() => knowledgeApi.listBases(token), {
@@ -57,6 +70,8 @@ export default function KnowledgePanel() {
     }
   }, [basesRequest.data, selectedKbId, setSelectedKbId]);
 
+  const selectedBase = basesRequest.data?.find(b => b.kb_id === selectedKbId);
+
   if (!token) {
     return (
       <div className="glass-panel flex h-full items-center justify-center rounded-[32px] p-8">
@@ -71,156 +86,163 @@ export default function KnowledgePanel() {
   }
 
   return (
-    <div className="glass-panel-strong flex h-full min-h-0 flex-col rounded-[32px] p-5">
+    <div className="flex h-full min-h-0 gap-4">
       {contextHolder}
-      <div className="mb-5 flex items-center gap-2.5 pb-4 border-b border-[var(--panel-border)]">
-        <DatabaseOutlined className="text-[#2d5a4f] text-lg" />
-        <span className="display-font text-[22px] font-semibold text-[#1a1f1a]">知识库管理</span>
-      </div>
 
-      <div className="min-h-0 flex-1 overflow-auto pr-2">
-        <Space direction="vertical" size={12} className="mb-6 w-full">
-          <div>
-            <label className="block text-sm font-medium text-[#1a1f1a] mb-2">知识库名称</label>
-            <Input
-              value={createName}
-              onChange={event => setCreateName(event.target.value)}
-              placeholder="输入知识库名称"
-              className="!rounded-xl"
-            />
+      {/* ============================================================
+          LEFT COLUMN — Knowledge Base List (narrow)
+          ============================================================ */}
+      <div className="w-[260px] shrink-0 flex flex-col glass-panel rounded-[28px] p-4">
+        {/* List header */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-xs font-semibold tracking-[0.14em] text-[var(--ink-tertiary)] uppercase flex items-center gap-1.5">
+            <FolderOutlined className="text-sm" />
+            知识库
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[#1a1f1a] mb-2">描述说明</label>
-            <Input.TextArea
-              autoSize={{ minRows: 2, maxRows: 4 }}
-              value={createDescription}
-              onChange={event => setCreateDescription(event.target.value)}
-              placeholder="简要描述知识库用途"
-              className="!rounded-xl"
+          <Tooltip title="新建知识库">
+            <Button
+              size="small"
+              type="text"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerOpen(true)}
+              className="hover:!text-[var(--accent-primary)] hover:!bg-[var(--accent-primary)]/8 !rounded-xl transition-colors"
             />
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={async () => {
-              try {
-                await knowledgeApi.createBase({ name: createName, description: createDescription }, token);
-                setCreateName('');
-                setCreateDescription('');
-                await basesRequest.refreshAsync();
-                apiMessage.success('知识库创建成功');
-              } catch (error) {
-                apiMessage.error(error instanceof Error ? error.message : '创建失败');
-              }
-            }}
-            disabled={!createName.trim()}
-            className="!rounded-xl !h-10 !font-medium shadow-md shadow-[#2d5a4f]/10"
-          >
-            新建知识库
-          </Button>
-        </Space>
-
-        <div className="mb-4 text-xs font-semibold tracking-[0.16em] text-[var(--ink-tertiary)] uppercase flex items-center gap-2">
-          <DatabaseOutlined />
-          Knowledge Bases
+          </Tooltip>
         </div>
-        <div className="mb-6 max-h-[280px] overflow-auto pr-1">
+
+        {/* Bases list */}
+        <div className="min-h-0 flex-1 overflow-auto pr-1 space-y-2">
           {basesRequest.loading ? (
-            <div className="flex justify-center py-8">
-              <Spin size="large" tip="加载中..." />
-            </div>
-          ) : basesRequest.data?.length ? (
-            <div className="space-y-3">
-              {basesRequest.data.map((item, index) => (
-                <Card
-                  key={item.kb_id}
-                  size="small"
-                  className={`!rounded-[22px] cursor-pointer transition-all duration-200 ${
-                    item.kb_id === selectedKbId
-                      ? '!bg-gradient-to-r !from-[#2d5a4f] !to-[#3d7a6f] !text-white !border-transparent !shadow-lg shadow-[#2d5a4f]/20 scale-[1.01]'
-                      : '!bg-white/75 !border-[var(--panel-border)] hover:!bg-white/90 hover:!shadow-md'
-                  }`}
-                  bodyStyle={{ padding: '16px 18px' }}
-                  onClick={() => setSelectedKbId(item.kb_id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-semibold text-[15px] mb-1.5 ${item.kb_id === selectedKbId ? 'text-white' : 'text-[#1a1f1a]'}`}>
-                        {item.name}
-                      </div>
-                      <div className={`text-xs ${item.kb_id === selectedKbId ? 'text-white/80' : 'text-[var(--ink-tertiary)]'} leading-relaxed`}>
-                        {item.description || '未填写描述'}
-                      </div>
-                    </div>
-                    {!item.is_official ? (
-                      <Tooltip title="删除知识库">
-                        <Button
-                          danger
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={async event => {
-                            event.stopPropagation();
-                            await knowledgeApi.deleteBase(item.kb_id, token);
-                            await basesRequest.refreshAsync();
-                            if (selectedKbId === item.kb_id) {
-                              setSelectedKbId('');
-                            }
-                            apiMessage.success('知识库已删除');
-                          }}
-                          className={`!rounded-lg ${item.kb_id === selectedKbId ? 'hover:!bg-white/20' : ''}`}
-                        />
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                  <div className="mt-3.5 flex flex-wrap gap-2">
-                    <Tag
-                      className={`!rounded-lg !px-2.5 !py-1 !text-xs ${
-                        item.kb_id === selectedKbId
-                          ? '!bg-white/20 !text-white !border-white/30'
-                          : '!bg-[#2d5a4f]/8 !text-[#2d5a4f] !border-[#2d5a4f]/15'
-                      }`}
-                    >
-                      {item.indexing_status}
-                    </Tag>
-                    <Tag
-                      className={`!rounded-lg !px-2.5 !py-1 !text-xs ${
-                        item.kb_id === selectedKbId
-                          ? '!bg-white/20 !text-white !border-white/30'
-                          : '!bg-[#4a7c59]/8 !text-[#4a7c59] !border-[#4a7c59]/15'
-                      }`}
-                    >
-                      {item.file_count} 文件
-                    </Tag>
-                    {item.is_official ? (
-                      <Tag
-                        color="gold"
-                        className="!rounded-lg !px-2.5 !py-1 !text-xs !font-medium"
-                        icon={<TrophyOutlined />}
-                      >
-                        官方
-                      </Tag>
-                    ) : null}
-                  </div>
-                </Card>
+            <div className="flex flex-col gap-3 py-4">
+              {[1, 2, 3].map(n => (
+                <div key={n} className="skeleton-shimmer h-[72px] w-full" />
               ))}
             </div>
+          ) : basesRequest.data?.length ? (
+            basesRequest.data.map((item, index) => {
+              const active = item.kb_id === selectedKbId;
+              return (
+                <button
+                  key={item.kb_id}
+                  type="button"
+                  className={`stagger-child w-full text-left rounded-[18px] border p-3.5 transition-all duration-200 group ${
+                    active
+                      ? 'border-[var(--accent-primary)] bg-gradient-to-r from-[var(--accent-primary)]/6 to-transparent shadow-sm'
+                      : 'border-transparent bg-white/50 hover:bg-white/75 hover:border-[var(--panel-border)]'
+                  }`}
+                  style={{ animationDelay: `${index * 40}ms` }}
+                  onClick={() => setSelectedKbId(item.kb_id)}
+                >
+                  {/* Left accent bar (visual only via border-left on active) */}
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`mt-0.5 h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-sm ${
+                        active
+                          ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
+                          : 'bg-[var(--panel-border)]/60 text-[var(--ink-tertiary)]'
+                      }`}
+                    >
+                      <DatabaseOutlined />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[13px] font-semibold truncate ${active ? 'text-[#1a1f1a]' : 'text-[var(--ink-primary)]'}`}>
+                          {item.name}
+                        </span>
+                        {item.is_official && (
+                          <TrophyOutlined className="text-[10px] text-amber-500 shrink-0" />
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--ink-tertiary)]">
+                        <StatusIcon status={item.indexing_status} />
+                        <span>{item.file_count} 文件</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })
           ) : (
-            <Empty
-              description={
-                <span className="text-[var(--ink-tertiary)] text-sm">暂无知识库</span>
-              }
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
+            <div className="flex min-h-[200px] items-center justify-center">
+              <Empty
+                description={<span className="text-[var(--ink-tertiary)] text-sm">暂无知识库</span>}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            </div>
           )}
         </div>
 
-        {selectedKbId ? (
+        {/* Bottom create button */}
+        <Button
+          block
+          icon={<PlusOutlined />}
+          onClick={() => setDrawerOpen(true)}
+          className="btn-ripple mt-3 !rounded-xl !h-10 !font-medium !border-dashed !border-[var(--accent-primary)]/30 !text-[var(--accent-primary)] hover:!bg-[var(--accent-primary)]/6"
+        >
+          新建知识库
+        </Button>
+      </div>
+
+      {/* ============================================================
+          RIGHT COLUMN — Detail View (wide)
+          ============================================================ */}
+      <div className="min-w-0 flex-1 glass-panel rounded-[28px] p-5 flex flex-col">
+        {!selectedKbId ? (
+          /* No selection state */
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-warm)]/8">
+                <DatabaseOutlined className="text-2xl text-[var(--accent-warm)]" />
+              </div>
+              <div className="text-[16px] font-semibold text-[#1a1f1a] mb-1">选择一个知识库</div>
+              <div className="text-[14px] text-[var(--ink-tertiary)]">从左侧列表中选择或新建知识库开始使用</div>
+            </div>
+          </div>
+        ) : (
           <>
+            {/* Detail header */}
+            <div className="mb-4 pb-3 border-b border-[var(--panel-border)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Typography.Title level={5} className="!mb-0 !text-[#1a1f1a]">
+                      {selectedBase?.name || '知识库'}
+                    </Typography.Title>
+                    {selectedBase?.is_official && (
+                      <Tag color="gold" className="!rounded-lg !px-2 !py-0.5 !text-[11px] !font-medium" icon={<TrophyOutlined />}>
+                        官方
+                      </Tag>
+                    )}
+                  </div>
+                  <div className="text-[13px] text-[var(--ink-secondary)] mt-0.5">
+                    {selectedBase?.description || '未填写描述'}
+                  </div>
+                </div>
+                {!selectedBase?.is_official && (
+                  <Tooltip title="删除知识库">
+                    <Button
+                      danger
+                      type="text"
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={async () => {
+                        await knowledgeApi.deleteBase(selectedKbId, token);
+                        await basesRequest.refreshAsync();
+                        setSelectedKbId('');
+                        apiMessage.success('知识库已删除');
+                      }}
+                      className="!rounded-lg"
+                    />
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+
+            {/* Upload area */}
             <Upload.Dragger
-              className="!mb-5 !rounded-[24px] !border-2 !border-dashed !border-[#2d5a4f]/20 !bg-gradient-to-br !from-[#2d5a4f]/5 !to-[#4a7c59]/5 hover:!border-[#2d5a4f]/40 hover:!from-[#2d5a4f]/10 hover:!to-[#4a7c59]/10 transition-all duration-300"
+              className="!mb-4 !rounded-[22px] !border-2 !border-dashed !border-[var(--accent-primary)]/15 !bg-gradient-to-br !from-[var(--accent-primary)]/3 !to-[var(--accent-secondary)]/3 hover:!border-[var(--accent-primary)]/35 hover:!from-[var(--accent-primary)]/8 hover:!to-[var(--accent-secondary)]/8 transition-all duration-300"
               multiple={false}
-              customRequest={async (options: UploadRequestOption) => {
+              customRequest={async (options) => {
                 try {
                   await knowledgeApi.uploadFile(selectedKbId, options.file as File, token);
                   options.onSuccess?.({}, options.file);
@@ -233,18 +255,19 @@ export default function KnowledgePanel() {
               }}
               showUploadList={false}
             >
-              <p className="ant-upload-drag-icon mb-3">
-                <div className="h-14 w-14 mx-auto rounded-xl bg-[#2d5a4f]/10 flex items-center justify-center">
-                  <CloudUploadOutlined className="text-2xl text-[#2d5a4f]" />
+              <div className="py-3">
+                <div className="h-12 w-12 mx-auto rounded-xl bg-[var(--accent-primary)]/8 flex items-center justify-center mb-2">
+                  <CloudUploadOutlined className="text-xl text-[var(--accent-primary)]" />
                 </div>
-              </p>
-              <p className="ant-upload-text text-[15px] font-medium text-[#1a1f1a] mb-1">拖拽文件到此处上传</p>
-              <p className="ant-upload-hint text-xs text-[var(--ink-tertiary)]">
-                支持多种文档格式，上传后将自动进行索引处理
-              </p>
+                <p className="text-[14px] font-medium text-[#1a1f1a] mb-0.5">拖拽文件到此处上传</p>
+                <p className="text-[12px] text-[var(--ink-tertiary)]">
+                  支持多种文档格式，上传后将自动进行索引处理
+                </p>
+              </div>
             </Upload.Dragger>
 
-            <div className="mb-4 flex gap-3">
+            {/* Search bar */}
+            <div className="mb-4 flex gap-2.5">
               <Input
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
@@ -257,103 +280,181 @@ export default function KnowledgePanel() {
                 type="primary"
                 icon={<SearchOutlined />}
                 onClick={() => searchRequest.run()}
-                className="!rounded-xl !h-10 !px-5 !font-medium"
+                className="btn-ripple !rounded-xl !h-10 !px-4 !font-medium"
               >
                 检索
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto">
-              <div className="mb-4 flex items-center gap-2.5 pb-3 border-b border-[var(--panel-border)]">
-                <FileTextOutlined className="text-[#2d5a4f]" />
-                <Typography.Title level={5} className="!mb-0 text-[#1a1f1a]">
-                  已上传文件
-                </Typography.Title>
+            {/* Scrollable content */}
+            <div className="min-h-0 flex-1 overflow-auto scroll-shadow-top pr-1" onScroll={e => {
+              const el = e.currentTarget;
+              el.classList.toggle('scrolled', el.scrollTop > 0);
+            }}>
+              {/* Files section */}
+              <div className="mb-4 flex items-center gap-2 pb-2 border-b border-[var(--panel-border)]">
+                <FileTextOutlined className="text-[var(--accent-primary)] text-sm" />
+                <span className="text-[13px] font-semibold text-[#1a1f1a]">已上传文件</span>
                 {filesRequest.data?.length ? (
-                  <span className="ml-auto text-xs text-[var(--ink-tertiary)]">
+                  <span className="ml-auto text-[11px] text-[var(--ink-tertiary)]">
                     {filesRequest.data.length} 个文件
                   </span>
                 ) : null}
               </div>
+
               {filesRequest.loading ? (
-                <div className="flex justify-center py-6">
-                  <Spin tip="加载中..." />
+                <div className="flex flex-col gap-2 py-4">
+                  {[1, 2, 3].map(n => (
+                    <div key={n} className="skeleton-shimmer h-[52px] w-full" />
+                  ))}
                 </div>
               ) : filesRequest.data?.length ? (
-                <List
-                  size="small"
-                  dataSource={filesRequest.data}
-                  renderItem={(file, index) => (
-                    <List.Item className="!px-0 !py-2.5">
-                      <div className="w-full rounded-2xl bg-white/75 px-4 py-3 border border-[var(--panel-border)] hover:border-[#2d5a4f]/20 hover:shadow-sm transition-all">
-                        <div className="text-sm font-medium text-[#1a1f1a] mb-1">{file.file_name}</div>
-                        <div className="flex items-center gap-3 text-xs text-[var(--ink-tertiary)]">
-                          <span className="px-2 py-0.5 rounded-md bg-[#2d5a4f]/8 text-[#2d5a4f]">
-                            {file.processing_status}
-                          </span>
-                          <span>{file.file_type}</span>
-                          <span>{(file.file_size / 1024).toFixed(1)} KB</span>
-                        </div>
+                <div className="space-y-2 mb-6">
+                  {filesRequest.data.map(file => (
+                    <div
+                      key={file.file_name}
+                      className="flex items-center gap-3 rounded-[16px] bg-white/70 px-4 py-2.5 border border-[var(--panel-border)] hover:border-[var(--accent-primary)]/15 hover:shadow-sm transition-all"
+                    >
+                      <div className="h-8 w-8 shrink-0 rounded-lg bg-[var(--accent-primary)]/8 flex items-center justify-center">
+                        <FileTextOutlined className="text-sm text-[var(--accent-primary)]" />
                       </div>
-                    </List.Item>
-                  )}
-                />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium text-[#1a1f1a] truncate">{file.file_name}</div>
+                        <div className="text-[11px] text-[var(--ink-tertiary)]">{file.file_type} · {(file.file_size / 1024).toFixed(1)} KB</div>
+                      </div>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                        file.processing_status === 'completed' || file.processing_status === 'done'
+                          ? 'bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]'
+                          : 'bg-[var(--accent-warm)]/10 text-[var(--accent-warm)]'
+                      }`}>
+                        {file.processing_status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <Empty
-                  description={
-                    <span className="text-[var(--ink-tertiary)] text-sm">暂无文件</span>
-                  }
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                />
+                <div className="flex min-h-[100px] items-center justify-center mb-6">
+                  <Empty
+                    description={<span className="text-[var(--ink-tertiary)] text-sm">暂无文件，上传开始使用</span>}
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                </div>
               )}
 
-              <div className="mb-4 mt-8 flex items-center gap-2.5 pb-3 border-b border-[var(--panel-border)]">
-                <SearchOutlined className="text-[#2d5a4f]" />
-                <Typography.Title level={5} className="!mb-0 text-[#1a1f1a]">
-                  检索结果
-                </Typography.Title>
-              </div>
-              {searchRequest.loading ? (
-                <div className="flex justify-center py-6">
-                  <Spin tip="检索中..." />
-                </div>
-              ) : searchRequest.data?.length ? (
-                <List
-                  dataSource={searchRequest.data}
-                  renderItem={(item, index) => (
-                    <List.Item className="!px-0 !py-2.5">
-                      <Card className="w-full !rounded-[22px] !border-[var(--panel-border)] !bg-white/75 hover:!shadow-md transition-shadow">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-xs text-[var(--ink-tertiary)]">
-                            <FileTextOutlined />
-                            <span>{item.source_file || 'unknown source'}</span>
+              {/* Search results */}
+              {(searchRequest.data !== undefined) && (
+                <>
+                  <div className="mb-4 flex items-center gap-2 pb-2 border-b border-[var(--panel-border)]">
+                    <SearchOutlined className="text-[var(--accent-blue)] text-sm" />
+                    <span className="text-[13px] font-semibold text-[#1a1f1a]">检索结果</span>
+                  </div>
+                  {searchRequest.loading ? (
+                    <div className="flex flex-col gap-2 py-4">
+                      {[1, 2].map(n => (
+                        <div key={n} className="skeleton-shimmer h-[80px] w-full" />
+                      ))}
+                    </div>
+                  ) : searchRequest.data?.length ? (
+                    <div className="space-y-2.5">
+                      {searchRequest.data.map(item => (
+                        <div
+                          key={item.source_file + item.content.slice(0, 20)}
+                          className="rounded-[18px] border border-[var(--panel-border)] bg-white/70 p-4 hover:shadow-sm transition-shadow"
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--ink-tertiary)]">
+                              <FileTextOutlined />
+                              <span>{item.source_file || 'unknown'}</span>
+                            </div>
+                            <Tag color="cyan" className="!rounded-lg !px-2 !py-0.5 !text-[11px] !font-medium !m-0">
+                              {item.score.toFixed(3)}
+                            </Tag>
                           </div>
-                          <Tag
-                            color="cyan"
-                            className="!rounded-lg !px-2.5 !py-0.5 !text-xs !font-medium"
-                          >
-                            score: {item.score.toFixed(3)}
-                          </Tag>
+                          <div className="whitespace-pre-wrap text-[13px] text-[#1a1f1a] leading-relaxed bg-[#1a1f1a]/[0.03] rounded-xl p-3">
+                            {item.content}
+                          </div>
                         </div>
-                        <div className="whitespace-pre-wrap text-sm text-[#1a1f1a] leading-relaxed bg-[#1a1f1a]/3 rounded-xl p-3 mt-2">
-                          {item.content}
-                        </div>
-                      </Card>
-                    </List.Item>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex min-h-[80px] items-center justify-center">
+                      <Empty
+                        description={<span className="text-[var(--ink-tertiary)] text-sm">暂无检索结果</span>}
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
+                    </div>
                   )}
-                />
-              ) : searchRequest.data?.length === 0 && !searchRequest.loading ? (
-                <Empty
-                  description={
-                    <span className="text-[var(--ink-tertiary)] text-sm">暂无检索结果</span>
-                  }
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                />
-              ) : null}
+                </>
+              )}
             </div>
           </>
-        ) : null}
+        )}
       </div>
+
+      {/* ============================================================
+          DRAWER — Create Knowledge Base
+          ============================================================ */}
+      <Drawer
+        title={
+          <div className="flex items-center gap-2">
+            <PlusOutlined className="text-[var(--accent-primary)]" />
+            <span className="display-font text-[18px] font-semibold">新建知识库</span>
+          </div>
+        }
+        placement="right"
+        width={400}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        styles={{
+          body: { padding: '20px', background: 'var(--panel-strong)' },
+          header: { borderBottom: '1px solid var(--panel-border)', padding: '16px 20px' },
+          wrapper: {},
+        }}
+        className="[&_.ant-drawer-content]:!bg-transparent [&_.ant-drawer-header]:!bg-transparent"
+      >
+        <Space direction="vertical" size={16} className="w-full">
+          <div>
+            <label className="block text-sm font-medium text-[#1a1f1a] mb-2">知识库名称</label>
+            <Input
+              value={createName}
+              onChange={event => setCreateName(event.target.value)}
+              placeholder="输入知识库名称"
+              className="!rounded-xl"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1a1f1a] mb-2">描述说明</label>
+            <Input.TextArea
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              value={createDescription}
+              onChange={event => setCreateDescription(event.target.value)}
+              placeholder="简要描述知识库用途"
+              className="!rounded-xl"
+            />
+          </div>
+          <Button
+            type="primary"
+            block
+            icon={<PlusOutlined />}
+            onClick={async () => {
+              try {
+                await knowledgeApi.createBase({ name: createName, description: createDescription }, token);
+                setCreateName('');
+                setCreateDescription('');
+                await basesRequest.refreshAsync();
+                setDrawerOpen(false);
+                apiMessage.success('知识库创建成功');
+              } catch (error) {
+                apiMessage.error(error instanceof Error ? error.message : '创建失败');
+              }
+            }}
+            disabled={!createName.trim()}
+            className="btn-ripple !rounded-xl !h-11 !font-medium shadow-md shadow-[var(--accent-primary)]/10"
+          >
+            创建知识库
+          </Button>
+        </Space>
+      </Drawer>
     </div>
   );
 }

@@ -13,6 +13,9 @@ export default function App() {
   const currentSessionId = useAtomValue(currentSessionIdAtom);
   const authorizationHeader = toAuthorizationHeader(authToken);
 
+  console.log('[App] authToken:', authToken ? `${authToken.substring(0, 20)}...` : 'empty');
+  console.log('[App] authorizationHeader:', authorizationHeader ? `${authorizationHeader.substring(0, 30)}...` : 'empty');
+
   return (
     <CopilotKit
       runtimeUrl={import.meta.env.VITE_ADAPTER_BASE_URL || '/agui'}

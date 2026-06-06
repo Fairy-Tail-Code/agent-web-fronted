@@ -315,15 +315,17 @@ function createRuntimeHandler(req) {
     `[adapter] ${req.method} ${req.originalUrl} -> ${agentUrl} (runtimeAgent=agno_agent, selected=${resolvedAgentKind}:${resolvedAgentId}, source=${selectionSource}, auth=${req.headers.authorization ? 'present' : 'missing'})`
   );
 
+  const agentHeaders = {
+    ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    ...(resolvedAgentId ? { 'x-agent-id': resolvedAgentId } : {}),
+    ...(resolvedAgentKind ? { 'x-agent-kind': resolvedAgentKind } : {}),
+  };
+
   const runtime = new CopilotRuntime({
     agents: {
       agno_agent: new AgnoAgent({
         url: agentUrl,
-        headers: {
-          ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
-          ...(resolvedAgentId ? { 'x-agent-id': resolvedAgentId } : {}),
-          ...(resolvedAgentKind ? { 'x-agent-kind': resolvedAgentKind } : {}),
-        },
+        headers: agentHeaders,
       }),
     },
     runner,
@@ -342,6 +344,12 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Agent-Id, X-Agent-Kind');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+
+  // Log all headers for /agui requests
+  if (req.path.startsWith('/agui')) {
+    console.log('[adapter] /agui request headers:', req.headers);
+  }
+
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
