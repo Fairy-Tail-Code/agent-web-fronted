@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Button, Card, Input, Space, Typography, message } from 'antd';
-import { LinkOutlined, MailOutlined, SafetyCertificateOutlined, LockOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Alert, Button, Input, Typography, message } from 'antd';
+import {
+  ArrowRightOutlined,
+  MailOutlined,
+  SafetyCertificateOutlined,
+  SendOutlined,
+  ThunderboltOutlined,
+  UserOutlined,
+  LockOutlined,
+} from '@ant-design/icons';
 import { useAtomValue } from 'jotai';
 import { currentAgentAtom, isLoggedInAtom } from '@/store/atoms';
 import { isSupabaseConfigured, supabaseClient } from '@/lib/supabaseClient';
@@ -69,7 +77,6 @@ export default function LoginPage() {
     loadTurnstileScript().then(() => {
       if (cancelled || !window.turnstile || !turnstileContainerRef.current) return;
 
-      // 清理旧 widget
       if (turnstileWidgetRef.current) {
         try { window.turnstile.remove(turnstileWidgetRef.current); } catch { /* ignore */ }
       }
@@ -106,40 +113,30 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // 如果启用了 CAPTCHA，走后端 /auth/send-magic-link
       if (CAPTCHA_ENABLED) {
         const turnstileToken = turnstileTokenRef.current;
-
         const resp = await fetch(`${BACKEND_BASE_URL}/auth/send-magic-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            turnstile_token: turnstileToken,
-          }),
+          body: JSON.stringify({ email, turnstile_token: turnstileToken }),
         });
-
         const data = await resp.json();
-
         if (!resp.ok) {
-          // 如果 CAPTCHA 验证失败，重置 widget
           if (resp.status === 403 && window.turnstile && turnstileWidgetRef.current) {
             window.turnstile.reset(turnstileWidgetRef.current);
             turnstileTokenRef.current = '';
           }
           throw new Error(data.detail || '发送登录链接失败');
         }
-
         messageApi.success(data.message || '登录链接已发送，请前往邮箱点击链接完成登录。');
       } else {
-        // 未启用 CAPTCHA，直接调用 Supabase（兼容旧行为）
         if (!supabaseClient) return;
         const { error } = await supabaseClient.auth.signInWithOtp({
           email,
           options: { shouldCreateUser: true },
         });
         if (error) throw error;
-        messageApi.success('登录链接已发送，请前往邮箱点击 magic link 完成登录。');
+        messageApi.success('登录链接已发送，请前往邮箱点击魔法链接完成登录。');
       }
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : '发送登录链接失败');
@@ -149,107 +146,145 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {contextHolder}
-      <div className="mx-auto max-w-[1200px] w-full">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_440px] items-center">
-          <div className="glass-panel rounded-[38px] p-10 md:p-14 slide-up">
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-3 rounded-full bg-[#2d5a4f] px-5 py-2.5 text-sm text-white shadow-lg shadow-[#2d5a4f]/25">
-                <SafetyCertificateOutlined className="text-base" />
-                <span className="font-medium">安全登录</span>
-              </div>
+
+      {/* ---- Background: gradient + geometric shapes ---- */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1a3a32] via-[#2d5a4f] to-[#1a4a3a]" />
+      {/* Large decorative triangle */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.08]">
+        <svg viewBox="0 0 200 200" className="w-full h-full">
+          <polygon points="200,0 200,200 0,200" fill="white" />
+        </svg>
+      </div>
+      {/* Small decorative circles */}
+      <div className="absolute top-[15%] left-[10%] w-3 h-3 rounded-full bg-white/10" style={{ animation: 'floatShape 5s ease-in-out infinite' }} />
+      <div className="absolute top-[60%] left-[8%] w-2 h-2 rounded-full bg-white/8" style={{ animation: 'floatShape 7s ease-in-out infinite reverse' }} />
+      <div className="absolute bottom-[20%] right-[12%] w-4 h-4 rounded-full bg-white/6" style={{ animation: 'floatShape 6s ease-in-out infinite' }} />
+      {/* Soft glow orbs */}
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-[var(--accent-secondary)]/10 -top-40 -right-40 blur-3xl" />
+      <div className="absolute w-[400px] h-[400px] rounded-full bg-[var(--accent-primary)]/10 -bottom-32 -left-32 blur-3xl" />
+
+      {/* ---- Login Card ---- */}
+      <div className="relative z-10 w-full max-w-[420px] mx-4 slide-up">
+        {/* Geometric overlap accent */}
+        <div className="absolute -top-5 -right-5 w-24 h-24 rounded-[20px] bg-gradient-to-br from-[var(--accent-secondary)] to-[#5ba88e] opacity-80 shadow-xl -z-10 rotate-12" />
+        <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-2xl bg-[var(--accent-warm)]/60 shadow-lg -z-10 -rotate-6" />
+
+        <div className="bg-white rounded-[28px] shadow-2xl shadow-black/15 p-8 md:p-10 relative overflow-hidden">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg shadow-[var(--accent-primary)]/30">
+              <ThunderboltOutlined className="text-white text-lg" />
             </div>
-            <Typography.Title level={1} className="display-font !mb-5 !text-[42px] !leading-[1.1] !text-[#1a1f1a]">
-              通过魔法链接<br />进入您的工作空间
-            </Typography.Title>
-            <Typography.Paragraph className="!mb-8 !max-w-[600px] !text-[17px] !leading-[1.8] !text-[var(--ink-secondary)]">
-              输入邮箱后，系统将发送一封安全的登录邮件。点击邮件中的魔法链接即可完成身份验证——无需密码，即刻访问。
-            </Typography.Paragraph>
-            <div className="grid gap-5 md:grid-cols-3">
-              <Card className="!rounded-[26px] !border-none !bg-white/80 !shadow-sm hover:!shadow-md transition-shadow duration-300">
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#2d5a4f]/10 text-[#2d5a4f]">
-                  <LockOutlined className="text-lg" />
-                </div>
-                <div className="text-sm font-semibold text-[#1a1f1a] mb-2">零密码登录</div>
-                <div className="text-sm text-[var(--ink-tertiary)] leading-relaxed">通过邮箱魔法链接验证身份，告别传统密码管理的烦恼。</div>
-              </Card>
-              <Card className="!rounded-[26px] !border-none !bg-white/80 !shadow-sm hover:!shadow-md transition-shadow duration-300">
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#c4783a]/10 text-[#c4783a]">
-                  <ThunderboltOutlined className="text-lg" />
-                </div>
-                <div className="text-sm font-semibold text-[#1a1f1a] mb-2">自动续期</div>
-                <div className="text-sm text-[var(--ink-tertiary)] leading-relaxed">会话安全保持，页面刷新后无需重复登录，无缝继续工作。</div>
-              </Card>
-              <Card className="!rounded-[26px] !border-none !bg-white/80 !shadow-sm hover:!shadow-md transition-shadow duration-300">
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#4a7c59]/10 text-[#4a7c59]">
-                  <MailOutlined className="text-lg" />
-                </div>
-                <div className="text-sm font-semibold text-[#1a1f1a] mb-2">人机验证</div>
-                <div className="text-sm text-[var(--ink-tertiary)] leading-relaxed">集成 Cloudflare Turnstile 安全验证，防止机器人批量攻击。</div>
-              </Card>
-            </div>
+            <span className="display-font text-[20px] font-semibold text-[#1a1f1a]">Agent Studio</span>
           </div>
 
-          <div className="glass-panel-strong rounded-[38px] p-8 md:p-10 slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="mb-8">
-              <div className="display-font text-[32px] font-semibold text-[#1a1f1a] mb-3">登录工作台</div>
-              <div className="text-[15px] text-[var(--ink-secondary)]">
-                当前 Agent: <span className="font-medium text-[#1a1f1a]">{currentAgent?.name || 'Agent Workbench'}</span>
-              </div>
-            </div>
+          {/* Title */}
+          <h1 className="display-font text-[28px] font-bold text-[#1a1f1a] mb-2 leading-tight">
+            欢迎回来
+          </h1>
+          <p className="text-[14px] text-[var(--ink-secondary)] mb-8 leading-relaxed">
+            输入邮箱，通过魔法链接安全登录工作台
+          </p>
 
-            {!isSupabaseConfigured ? (
-              <Alert
-                type="error"
-                showIcon
-                message="缺少 Supabase 前端配置"
-                description="请在 .env 中提供 VITE_SUPABASE_URL 或 VITE_SUPABASE_AUTH_URL，以及 VITE_SUPABASE_ANON_KEY。"
-              />
-            ) : (
-              <Space direction="vertical" size={16} className="w-full">
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1f1a] mb-2.5">邮箱地址</label>
-                  <Input
-                    size="large"
-                    prefix={<MailOutlined className="text-[var(--ink-tertiary)]" />}
+          {!isSupabaseConfigured ? (
+            <Alert
+              type="error"
+              showIcon
+              message="缺少 Supabase 前端配置"
+              description="请在 .env 中提供 VITE_SUPABASE_URL 或 VITE_SUPABASE_AUTH_URL，以及 VITE_SUPABASE_ANON_KEY。"
+              className="!rounded-xl mb-4"
+            />
+          ) : (
+            <>
+              {/* Email input */}
+              <div className="mb-6">
+                <label className="block text-[13px] font-medium text-[var(--ink-secondary)] mb-2">
+                  邮箱地址
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-[var(--accent-primary)]/50 group-focus-within:text-[var(--accent-primary)] transition-colors">
+                    <UserOutlined className="text-[14px]" />
+                  </div>
+                  <input
+                    type="email"
                     value={email}
-                    onChange={event => setEmail(event.target.value.trim())}
+                    onChange={e => setEmail(e.target.value.trim())}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSendLink(); }}
                     placeholder="your@email.com"
-                    onPressEnter={handleSendLink}
-                    className="h-12 text-[15px]"
+                    className="w-full h-12 pl-10 pr-4 text-[15px] text-[#1a1f1a] bg-transparent border-b-2 border-[var(--panel-border)] focus:border-[var(--accent-primary)] focus:outline-none transition-colors placeholder:text-[var(--ink-tertiary)]/60"
                   />
                 </div>
+              </div>
 
-                {/* Turnstile CAPTCHA widget */}
-                {CAPTCHA_ENABLED && (
-                  <div
-                    ref={turnstileContainerRef}
-                    className="flex justify-center"
-                    style={{ minHeight: 65 }}
-                  />
+              {/* Password hint (visual only, matching reference style) */}
+              <div className="mb-6">
+                <label className="block text-[13px] font-medium text-[var(--ink-secondary)] mb-2">
+                  认证方式
+                </label>
+                <div className="relative">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-[var(--accent-primary)]/50">
+                    <LockOutlined className="text-[14px]" />
+                  </div>
+                  <div className="w-full h-12 pl-10 flex items-center text-[14px] text-[var(--ink-tertiary)] border-b-2 border-[var(--panel-border)]">
+                    邮件魔法链接验证
+                  </div>
+                </div>
+              </div>
+
+              {/* Turnstile CAPTCHA widget */}
+              {CAPTCHA_ENABLED && (
+                <div
+                  ref={turnstileContainerRef}
+                  className="flex justify-center mb-5"
+                  style={{ minHeight: 65 }}
+                />
+              )}
+
+              {/* Login button */}
+              <button
+                type="button"
+                onClick={handleSendLink}
+                disabled={loading || !email}
+                className="btn-ripple w-full h-12 rounded-2xl bg-gradient-to-r from-[var(--accent-primary)] to-[#3d7a6f] text-white text-[15px] font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent-primary)]/25 hover:shadow-xl hover:shadow-[var(--accent-primary)]/35 hover:from-[#3d7a6f] hover:to-[var(--accent-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+              >
+                {loading ? (
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <>
+                    <SendOutlined className="text-sm" />
+                    发送登录链接
+                    <ArrowRightOutlined className="text-sm" />
+                  </>
                 )}
+              </button>
 
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  loading={loading}
-                  disabled={!email}
-                  onClick={handleSendLink}
-                  icon={<LinkOutlined />}
-                  className="h-12 text-[15px] font-medium shadow-lg shadow-[#2d5a4f]/20 hover:shadow-xl hover:shadow-[#2d5a4f]/30 transition-all duration-300"
-                >
-                  发送登录链接
-                </Button>
-                <div className="text-center text-sm text-[var(--ink-tertiary)] leading-relaxed">
-                  首次使用同样通过登录链接进入，系统会自动创建您的账户。
-                </div>
-              </Space>
-            )}
+              {/* Bottom hint */}
+              <div className="mt-5 text-center text-[13px] text-[var(--ink-tertiary)] leading-relaxed">
+                首次使用？输入邮箱即可自动注册
+              </div>
+            </>
+          )}
+
+          {/* Security badge */}
+          <div className="mt-6 pt-5 border-t border-[var(--panel-border)] flex items-center justify-center gap-2 text-[12px] text-[var(--ink-tertiary)]">
+            <SafetyCertificateOutlined className="text-[var(--accent-secondary)]" />
+            <span>端到端加密 · Cloudflare 安全防护</span>
           </div>
         </div>
       </div>
+
+      {/* Floating animation keyframes */}
+      <style>{`
+        @keyframes floatShape {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from '@/App';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
-import HomeRedirectPage from '@/pages/HomeRedirectPage';
+import LandingPage from '@/pages/LandingPage';
 import KnowledgePage from '@/pages/KnowledgePage';
 import LoginPage from '@/pages/LoginPage';
 import WorkspacePage from '@/pages/WorkspacePage';
@@ -15,7 +15,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomeRedirectPage />,
+        element: <LandingPage />,
       },
       {
         path: 'login',
