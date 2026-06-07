@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 
 # Alpine 用 apk 安装，不是 apt-get！
-RUN apk add --no-cache python3 make g
+RUN apk add --no-cache python3 make gcc g++
 
 WORKDIR /app
 COPY package.json package-lock.json ./
