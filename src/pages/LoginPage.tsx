@@ -17,18 +17,47 @@ import { isSupabaseConfigured, supabaseClient } from '@/lib/supabaseClient';
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 const CAPTCHA_ENABLED = TURNSTILE_SITE_KEY && TURNSTILE_SITE_KEY !== '';
 
-// Turnstile script 加载
+// Turnstile script loading — must be robust against cached scripts and race conditions
 function loadTurnstileScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
+    // Script already loaded — still wait for turnstile to be available
+    const existing = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+    if (existing && window.turnstile) {
       resolve();
       return;
     }
+    if (existing) {
+      // Script tag exists but turnstile not ready yet — poll
+      const poll = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(poll);
+          resolve();
+        }
+      }, 100);
+      // Safety timeout after 10s
+      setTimeout(() => {
+        clearInterval(poll);
+        reject(new Error('Turnstile script loaded but window.turnstile not available'));
+      }, 10000);
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
     script.async = true;
     script.defer = true;
-    window.onTurnstileLoad = () => resolve();
+
+    // Set callback BEFORE appending to avoid race on cached scripts
+    window.onTurnstileLoad = () => {
+      // Wait one tick for turnstile to be fully initialized
+      setTimeout(() => {
+        if (window.turnstile) {
+          resolve();
+        } else {
+          reject(new Error('Turnstile script loaded but window.turnstile not available'));
+        }
+      }, 0);
+    };
     script.onerror = () => reject(new Error('Turnstile script load failed'));
     document.head.appendChild(script);
   });
@@ -93,8 +122,11 @@ export default function LoginPage() {
         theme: 'light',
         size: 'normal',
       });
+      if (!turnstileWidgetRef.current) {
+        console.error('Turnstile render returned null widget ID');
+      }
     }).catch((err) => {
-      console.warn('Turnstile 加载失败，跳过 CAPTCHA:', err);
+      console.error('Turnstile 加载失败:', err);
     });
 
     return () => {
