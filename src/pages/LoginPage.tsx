@@ -1,51 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Input, Typography, message } from 'antd';
 import {
   ArrowRightOutlined,
-  MailOutlined,
+  LockOutlined,
   SafetyCertificateOutlined,
   SendOutlined,
   ThunderboltOutlined,
   UserOutlined,
-  LockOutlined,
 } from '@ant-design/icons';
 import { useAtomValue } from 'jotai';
 import { currentAgentAtom, isLoggedInAtom } from '@/store/atoms';
 import { isSupabaseConfigured, supabaseClient } from '@/lib/supabaseClient';
-
-// Turnstile 配置
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
-const CAPTCHA_ENABLED = TURNSTILE_SITE_KEY && TURNSTILE_SITE_KEY !== '';
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || '/backend';
-
-// Turnstile script 加载
-function loadTurnstileScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
-    script.async = true;
-    script.defer = true;
-    window.onTurnstileLoad = () => resolve();
-    script.onerror = () => reject(new Error('Turnstile script load failed'));
-    document.head.appendChild(script);
-  });
-}
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
-      reset: (widgetId?: string) => void;
-      remove: (widgetId?: string) => void;
-    };
-    onTurnstileLoad?: () => void;
-  }
-}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -56,11 +22,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Turnstile state
-  const turnstileWidgetRef = useRef<string | null>(null);
-  const turnstileTokenRef = useRef<string>('');
-  const turnstileContainerRef = useRef<HTMLDivElement>(null);
-
   const redirectTarget = useMemo(() => searchParams.get('redirect') || '/workspace', [searchParams]);
 
   useEffect(() => {
@@ -69,75 +30,17 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, navigate, redirectTarget]);
 
-  // 初始化 Turnstile widget
-  useEffect(() => {
-    if (!CAPTCHA_ENABLED || !turnstileContainerRef.current) return;
-
-    let cancelled = false;
-    loadTurnstileScript().then(() => {
-      if (cancelled || !window.turnstile || !turnstileContainerRef.current) return;
-
-      if (turnstileWidgetRef.current) {
-        try { window.turnstile.remove(turnstileWidgetRef.current); } catch { /* ignore */ }
-      }
-
-      turnstileWidgetRef.current = window.turnstile.render(turnstileContainerRef.current, {
-        sitekey: TURNSTILE_SITE_KEY,
-        callback: (token: string) => {
-          turnstileTokenRef.current = token;
-        },
-        'error-callback': () => {
-          turnstileTokenRef.current = '';
-        },
-        'expired-callback': () => {
-          turnstileTokenRef.current = '';
-        },
-        theme: 'light',
-        size: 'normal',
-      });
-    }).catch((err) => {
-      console.warn('Turnstile 加载失败，跳过 CAPTCHA:', err);
-    });
-
-    return () => {
-      cancelled = true;
-      if (turnstileWidgetRef.current && window.turnstile) {
-        try { window.turnstile.remove(turnstileWidgetRef.current); } catch { /* ignore */ }
-        turnstileWidgetRef.current = null;
-      }
-    };
-  }, []);
-
   const handleSendLink = async () => {
     if (!email) return;
-
     setLoading(true);
     try {
-      if (CAPTCHA_ENABLED) {
-        const turnstileToken = turnstileTokenRef.current;
-        const resp = await fetch(`${BACKEND_BASE_URL}/auth/send-magic-link`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, turnstile_token: turnstileToken }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) {
-          if (resp.status === 403 && window.turnstile && turnstileWidgetRef.current) {
-            window.turnstile.reset(turnstileWidgetRef.current);
-            turnstileTokenRef.current = '';
-          }
-          throw new Error(data.detail || '发送登录链接失败');
-        }
-        messageApi.success(data.message || '登录链接已发送，请前往邮箱点击链接完成登录。');
-      } else {
-        if (!supabaseClient) return;
-        const { error } = await supabaseClient.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: true },
-        });
-        if (error) throw error;
-        messageApi.success('登录链接已发送，请前往邮箱点击魔法链接完成登录。');
-      }
+      if (!supabaseClient) return;
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+      messageApi.success('登录链接已发送，请前往邮箱点击链接完成登录。');
     } catch (error) {
       messageApi.error(error instanceof Error ? error.message : '发送登录链接失败');
     } finally {
@@ -232,15 +135,6 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Turnstile CAPTCHA widget */}
-              {CAPTCHA_ENABLED && (
-                <div
-                  ref={turnstileContainerRef}
-                  className="flex justify-center mb-5"
-                  style={{ minHeight: 65 }}
-                />
-              )}
 
               {/* Login button */}
               <button
