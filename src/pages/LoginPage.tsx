@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Input, Typography, message } from 'antd';
 import {
@@ -13,6 +13,38 @@ import { useAtomValue } from 'jotai';
 import { currentAgentAtom, isLoggedInAtom } from '@/store/atoms';
 import { isSupabaseConfigured, supabaseClient } from '@/lib/supabaseClient';
 
+// Turnstile 配置
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+const CAPTCHA_ENABLED = TURNSTILE_SITE_KEY && TURNSTILE_SITE_KEY !== '';
+
+// Turnstile script 加载
+function loadTurnstileScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+    script.async = true;
+    script.defer = true;
+    window.onTurnstileLoad = () => resolve();
+    script.onerror = () => reject(new Error('Turnstile script load failed'));
+    document.head.appendChild(script);
+  });
+}
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId?: string) => void;
+    };
+    onTurnstileLoad?: () => void;
+  }
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -22,6 +54,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Turnstile state
+  const turnstileWidgetRef = useRef<string | null>(null);
+  const turnstileTokenRef = useRef<string>('');
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+
   const redirectTarget = useMemo(() => searchParams.get('redirect') || '/workspace', [searchParams]);
 
   useEffect(() => {
@@ -30,18 +67,68 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, navigate, redirectTarget]);
 
+  // 初始化 Turnstile widget
+  useEffect(() => {
+    if (!CAPTCHA_ENABLED || !turnstileContainerRef.current) return;
+
+    let cancelled = false;
+    loadTurnstileScript().then(() => {
+      if (cancelled || !window.turnstile || !turnstileContainerRef.current) return;
+
+      if (turnstileWidgetRef.current) {
+        try { window.turnstile.remove(turnstileWidgetRef.current); } catch { /* ignore */ }
+      }
+
+      turnstileWidgetRef.current = window.turnstile.render(turnstileContainerRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token: string) => {
+          turnstileTokenRef.current = token;
+        },
+        'error-callback': () => {
+          turnstileTokenRef.current = '';
+        },
+        'expired-callback': () => {
+          turnstileTokenRef.current = '';
+        },
+        theme: 'light',
+        size: 'normal',
+      });
+    }).catch((err) => {
+      console.warn('Turnstile 加载失败，跳过 CAPTCHA:', err);
+    });
+
+    return () => {
+      cancelled = true;
+      if (turnstileWidgetRef.current && window.turnstile) {
+        try { window.turnstile.remove(turnstileWidgetRef.current); } catch { /* ignore */ }
+        turnstileWidgetRef.current = null;
+      }
+    };
+  }, []);
+
   const handleSendLink = async () => {
     if (!email) return;
+
     setLoading(true);
     try {
       if (!supabaseClient) return;
       const { error } = await supabaseClient.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          captchaToken: CAPTCHA_ENABLED ? turnstileTokenRef.current : undefined,
+        },
       });
       if (error) throw error;
       messageApi.success('登录链接已发送，请前往邮箱点击链接完成登录。');
     } catch (error) {
+      if (CAPTCHA_ENABLED && error instanceof Error && error.message.includes('captcha')) {
+        // CAPTCHA 验证失败，重置 widget
+        if (window.turnstile && turnstileWidgetRef.current) {
+          window.turnstile.reset(turnstileWidgetRef.current);
+          turnstileTokenRef.current = '';
+        }
+      }
       messageApi.error(error instanceof Error ? error.message : '发送登录链接失败');
     } finally {
       setLoading(false);
@@ -135,6 +222,15 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Turnstile CAPTCHA widget */}
+              {CAPTCHA_ENABLED && (
+                <div
+                  ref={turnstileContainerRef}
+                  className="flex justify-center mb-5"
+                  style={{ minHeight: 65 }}
+                />
+              )}
 
               {/* Login button */}
               <button
